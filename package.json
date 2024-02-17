@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@discord-player/extractor": "^4.4.6",
+    "@discordjs/voice": "^0.16.1",
+    "discord-player": "^6.6.7",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.4"
+  }
+}
