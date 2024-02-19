@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require("discord.js");
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, NoSubscriberBehavior, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, NoSubscriberBehavior, AudioPlayerStatus, StreamType } = require('@discordjs/voice');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,12 +18,12 @@ module.exports = {
     let id;
     let isSelect = false
 
-    if(select) {
-      if(select.id != `audio_select`) return
+    if (select) {
+      if (select.id != `audio_select`) return
       isSelect = true;
       name = JSON.parse(select.value).name;
       id = JSON.parse(select.value).i;
-    }else {
+    } else {
       name = interaction.options.get("name").value;
     }
 
@@ -37,11 +37,10 @@ module.exports = {
       return await interaction.reply({ content: 'Não tenho permissão para entrar e falar neste canal de voz.', ephemeral: true });
     }
 
-
     const res = await fetch(`https://luckyinstants.netlify.app/api/instants/search?q=${encodeURIComponent(name)}`);
     let resJson;
 
-    if(isSelect) {
+    if (isSelect) {
       await interaction.reply({ content: 'Tocando.', ephemeral: true });
       resJson = await res.json();
 
@@ -52,25 +51,57 @@ module.exports = {
         selfDeaf: false
       });
 
+      const resource = createAudioResource(`./silence.mp3`);
+
       const player = createAudioPlayer({
         behaviors: {
           noSubscriber: NoSubscriberBehavior.Play,
         },
       });
 
-
-      const resource = createAudioResource(resJson[id].audioUrl);
       player.play(resource);
       connection.subscribe(player);
 
       player.on('error', error => {
-        console.error('Ocorreu um erro ao reproduzir o áudio:', error);
-        connection.destroy();
+        try {
+          connection.destroy();
+          console.error('Ocorreu um erro ao reproduzir o áudio:', error);
+        } catch (e) {
+          console.log('Erro ao destruir')
+        }
       });
 
       player.on(AudioPlayerStatus.Idle, () => {
-        connection.destroy();
+        //first audio done
+        const resource2 = createAudioResource(resJson[id].audioUrl);
+
+        const player2 = createAudioPlayer({
+          behaviors: {
+            noSubscriber: NoSubscriberBehavior.Play,
+          },
+        });
+
+        player2.play(resource2);
+        connection.subscribe(player2);
+
+        player2.on('error', error => {
+          try {
+            connection.destroy();
+            console.error('Ocorreu um erro ao reproduzir o áudio:', error);
+          } catch (e) {
+            console.log('Erro ao destruir')
+          }
+        });
+
+        player2.on(AudioPlayerStatus.Idle, () => {
+          try {
+            connection.destroy();
+          } catch (e) {
+            console.log('Erro ao destruir')
+          }
+        });
       });
+
       return
     }
 
@@ -86,7 +117,7 @@ module.exports = {
       return new StringSelectMenuOptionBuilder()
         .setLabel(`${index + 1}. ${result.title}`)
         .setDescription(`${result.audioUrl.replace(`https://www.myinstants.com/media/sounds/`, ``).slice(0, 100)}`)
-        .setValue(`${JSON.stringify({i: index, name: name})}`)
+        .setValue(`${JSON.stringify({ i: index, name: name })}`)
     });
 
 
