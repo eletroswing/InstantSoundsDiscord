@@ -51,7 +51,7 @@ module.exports = {
         selfDeaf: false
       });
 
-      const resource = createAudioResource(`./silence.mp3`);
+      const resource = createAudioResource(`./silence-2.mp3`);
 
       const player = createAudioPlayer({
         behaviors: {
